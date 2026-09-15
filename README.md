@@ -29,31 +29,31 @@
 - Trigger يمنع تلقائيًا تجاوز السعة القصوى للمجموعة
 - Trigger لتحديث `updated_at` تلقائيًا
 - جميع الحقول التصنيفية (role/type/status/severity/source) من نوع `ENUM` بدل نص حر
- - Row Level Security مفعّلة على الجداول الـ14 كاملة
-               
-                ## التشغيل محليًا
-               
-                ```bash
-                  createdb ain_alhamla
-                  psql -d ain_alhamla -f schema.sql
-                  psql -d ain_alhamla -f seed.sql
-                  ```
+- Row Level Security مفعّلة على الجداول الـ14 كاملة
 
-                  ## التحقق من البيانات التجريبية
+## التشغيل محليًا
 
-                  بعد تشغيل `seed.sql`، عدد الصفوف المتوقع في كل جدول:
+```bash
+createdb ain_alhamla
+psql -d ain_alhamla -f schema.sql
+psql -d ain_alhamla -f seed.sql
+```
 
-                  | الجدول | العدد | الجدول | العدد |
-                  |---|---|---|---|
-                  | users | 10 | trips | 2 |
-                  | campaigns | 1 | trip_groups | 3 |
-                  | supervisors | 2 | alerts | 3 |
-                  | groups | 2 | sos_requests | 1 |
-                  | devices | 6 | emergency_contacts | 7 |
-                  | pilgrims | 6 | notifications | 3 |
-                  | locations | 4 | attendance | 11 |
+## التحقق من البيانات التجريبية
 
-                  ---
+بعد تشغيل `seed.sql`، عدد الصفوف المتوقع في كل جدول:
 
-                  جزء من مشروع **عين الحملة** لإدارة وسلامة حملات الحج.
-                  
+| الجدول | العدد | الجدول | العدد |
+|---|---|---|---|
+| users | 10 | trips | 2 |
+| campaigns | 1 | trip_groups | 3 |
+| supervisors | 2 | alerts | 3 |
+| groups | 2 | sos_requests | 1 |
+| devices | 6 | emergency_contacts | 7 |
+| pilgrims | 6 | notifications | 3 |
+| locations | 4 | attendance | 11 |
+
+---
+
+جزء من مشروع **عين الحملة** لإدارة وسلامة حملات الحج.
+
