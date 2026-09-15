@@ -1,0 +1,237 @@
+// =====================================================================
+// عين الحملة — DBML لاستخدامه مباشرة على dbdiagram.io
+// مطابق تماماً لـ schema.sql (PostgreSQL 16) — 14 جدولاً
+// =====================================================================
+
+Enum user_role {
+  ADMIN
+  SUPERVISOR
+  PILGRIM
+  OPERATIONS_CENTER
+}
+
+Enum campaign_status {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+Enum device_type {
+  NFC
+  QR
+  BLE_TAG
+}
+
+Enum device_status {
+  ACTIVE
+  DISCONNECTED
+  LOST
+}
+
+Enum location_type {
+  CHECKPOINT
+  SAFE_ZONE
+}
+
+Enum attendance_status {
+  PRESENT
+  LATE
+  ABSENT
+  OUT_OF_RANGE
+}
+
+Enum attendance_source {
+  NFC_SCAN
+  QR_SCAN
+  BLE_BEACON
+  GPS
+  MANUAL
+}
+
+Enum trip_status {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+Enum alert_type {
+  ABSENCE
+  DELAY
+  GEOFENCE_BREACH
+  SOS
+}
+
+Enum alert_severity {
+  LOW
+  MEDIUM
+  CRITICAL
+}
+
+Enum alert_status {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+Enum sos_status {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
+Enum notification_channel {
+  PUSH
+  SMS
+}
+
+// ---------------------------------------------------------------------
+// المجموعة 1: الهوية والمستخدمون
+// ---------------------------------------------------------------------
+
+Table users {
+  id            bigint    [pk, increment]
+  full_name     varchar
+  national_id   varchar   [unique, not null]
+  phone         varchar   [not null]
+  password_hash text      [not null]
+  role          user_role [not null]
+  is_active     boolean   [not null, default: true]
+  created_at    timestamptz [not null, default: `now()`]
+  updated_at    timestamptz [not null, default: `now()`, note: 'auto-updated via trigger']
+}
+
+Table campaigns {
+  id          bigint    [pk, increment]
+  name        varchar   [not null]
+  license_no  varchar   [unique, not null]
+  start_date  date      [not null]
+  end_date    date      [not null, note: 'CHECK end_date >= start_date']
+  admin_id    bigint    [ref: > users.id]
+  status      campaign_status [not null, default: 'UPCOMING']
+}
+
+Table supervisors {
+  id          bigint  [pk, increment]
+  user_id     bigint  [unique, not null, ref: > users.id]
+  campaign_id bigint  [ref: > campaigns.id]
+  job_title   varchar
+  created_at  timestamptz [not null, default: `now()`]
+}
+
+Table groups {
+  id            bigint  [pk, increment]
+  campaign_id   bigint  [not null, ref: > campaigns.id]
+  name          varchar [not null]
+  supervisor_id bigint  [ref: > supervisors.id]
+  capacity      int     [not null, note: 'CHECK capacity > 0 — trigger prevents exceeding this on pilgrims']
+}
+
+Table devices {
+  id             bigint       [pk, increment]
+  type           device_type  [not null]
+  serial_code    varchar      [unique, not null]
+  battery_level  smallint     [note: 'CHECK 0-100']
+  last_signal_at timestamptz
+  status         device_status [not null, default: 'ACTIVE']
+}
+
+Table pilgrims {
+  id            bigint  [pk, increment]
+  user_id       bigint  [unique, not null, ref: > users.id]
+  campaign_id   bigint  [ref: > campaigns.id]
+  group_id      bigint  [ref: > groups.id]
+  device_id     bigint  [unique, ref: > devices.id]
+  passport_no   varchar
+  blood_type    varchar
+  medical_notes text
+  created_at    timestamptz [not null, default: `now()`]
+}
+
+// ---------------------------------------------------------------------
+// المجموعة 2: التتبع والموقع والتنقلات
+// ---------------------------------------------------------------------
+
+Table locations {
+  id            bigint        [pk, increment]
+  campaign_id   bigint        [ref: > campaigns.id]
+  name          varchar       [not null]
+  type          location_type [not null]
+  latitude      decimal       [not null]
+  longitude     decimal       [not null]
+  radius_meters int           [not null, default: 100]
+}
+
+Table attendance {
+  id              bigint  [pk, increment]
+  pilgrim_id      bigint  [not null, ref: > pilgrims.id]
+  location_id     bigint  [ref: > locations.id]
+  checkpoint_time timestamptz [not null, default: `now()`]
+  status          attendance_status [not null]
+  source          attendance_source [not null]
+}
+
+Table trips {
+  id             bigint      [pk, increment]
+  vehicle_no     varchar     [not null]
+  driver_name    varchar     [not null]
+  route_from_id  bigint      [ref: > locations.id]
+  route_to_id    bigint      [ref: > locations.id]
+  departure_time timestamptz
+  arrival_time   timestamptz
+  status         trip_status [not null, default: 'SCHEDULED']
+}
+
+Table trip_groups {
+  trip_id  bigint [ref: > trips.id]
+  group_id bigint [ref: > groups.id]
+
+  indexes {
+    (trip_id, group_id) [pk]
+  }
+}
+
+// ---------------------------------------------------------------------
+// المجموعة 3: السلامة والتنبيهات
+// ---------------------------------------------------------------------
+
+Table alerts {
+  id          bigint         [pk, increment]
+  pilgrim_id  bigint         [ref: > pilgrims.id]
+  location_id bigint         [ref: > locations.id]
+  type        alert_type     [not null]
+  severity    alert_severity [not null]
+  status      alert_status   [not null, default: 'OPEN']
+  resolved_by bigint         [ref: > users.id]
+  created_at  timestamptz    [not null, default: `now()`]
+  resolved_at timestamptz
+}
+
+Table sos_requests {
+  id           bigint     [pk, increment]
+  alert_id     bigint     [unique, ref: > alerts.id, note: '1:1 with alerts']
+  pilgrim_id   bigint     [not null, ref: > pilgrims.id]
+  latitude     decimal
+  longitude    decimal
+  responder_id bigint     [ref: > users.id]
+  status       sos_status [not null, default: 'PENDING']
+  triggered_at timestamptz [not null, default: `now()`]
+  resolved_at  timestamptz
+}
+
+Table emergency_contacts {
+  id         bigint  [pk, increment]
+  pilgrim_id bigint  [not null, ref: > pilgrims.id]
+  name       varchar [not null]
+  relation   varchar
+  phone      varchar [not null]
+  is_primary boolean [not null, default: false, note: 'partial unique index: one primary per pilgrim']
+}
+
+Table notifications {
+  id       bigint  [pk, increment]
+  user_id  bigint  [not null, ref: > users.id]
+  alert_id bigint  [ref: > alerts.id]
+  channel  notification_channel [not null]
+  sent_at  timestamptz [not null, default: `now()`]
+  read_at  timestamptz
+}
