@@ -1,6 +1,7 @@
 -- =====================================================================
 -- عين الحملة — بيانات تجريبية (seed.sql)
--- يُنفَّذ فوق schema.sql — يغطي جميع الجداول الـ14 بسيناريو واقعي متكامل
+-- يُنفَّذ فوق schema.sql — يغطي جميع الجداول الـ13 بسيناريو واقعي متكامل
+-- (نسخة بدون هاردوير: لا جدول devices — الحضور مصدره APP_CHECKIN/GPS/MANUAL)
 -- =====================================================================
 
 BEGIN;
@@ -36,23 +37,13 @@ INSERT INTO groups (id, campaign_id, name, supervisor_id, capacity) VALUES
 
 SELECT setval('groups_id_seq', 2);
 
-INSERT INTO devices (id, type, serial_code, battery_level, last_signal_at, status) VALUES
- (1, 'NFC',     'NFC-0001', 88, now() - interval '5 minutes',  'ACTIVE'),
- (2, 'NFC',     'NFC-0002', 74, now() - interval '3 minutes',  'ACTIVE'),
- (3, 'QR',      'QR-0001',  100, now() - interval '2 minutes', 'ACTIVE'),
- (4, 'QR',      'QR-0002',  65,  now() - interval '10 minutes','ACTIVE'),
- (5, 'BLE_TAG', 'BLE-0001', 42,  now() - interval '40 minutes','DISCONNECTED'),
- (6, 'BLE_TAG', 'BLE-0002', 91,  now() - interval '1 minutes', 'ACTIVE');
-
-SELECT setval('devices_id_seq', 6);
-
-INSERT INTO pilgrims (id, user_id, campaign_id, group_id, device_id, passport_no, blood_type, medical_notes) VALUES
- (1, 5,  1, 1, 1, 'A1234567', 'O+',  NULL),
- (2, 6,  1, 1, 2, 'A1234568', 'A+',  'حساسية من البنسلين'),
- (3, 7,  1, 1, 3, 'A1234569', 'B+',  NULL),
- (4, 8,  1, 2, 4, 'A1234570', 'AB+', 'مريض سكري - يحتاج جرعة أنسولين دورية'),
- (5, 9,  1, 2, 5, 'A1234571', 'O-',  NULL),
- (6, 10, 1, 2, 6, 'A1234572', 'A-',  'ضغط دم مرتفع');
+INSERT INTO pilgrims (id, user_id, campaign_id, group_id, passport_no, blood_type, medical_notes) VALUES
+ (1, 5,  1, 1, 'A1234567', 'O+',  NULL),
+ (2, 6,  1, 1, 'A1234568', 'A+',  'حساسية من البنسلين'),
+ (3, 7,  1, 1, 'A1234569', 'B+',  NULL),
+ (4, 8,  1, 2, 'A1234570', 'AB+', 'مريض سكري - يحتاج جرعة أنسولين دورية'),
+ (5, 9,  1, 2, 'A1234571', 'O-',  NULL),
+ (6, 10, 1, 2, 'A1234572', 'A-',  'ضغط دم مرتفع');
 
 SELECT setval('pilgrims_id_seq', 6);
 
@@ -65,17 +56,17 @@ INSERT INTO locations (id, campaign_id, name, type, latitude, longitude, radius_
 SELECT setval('locations_id_seq', 4);
 
 INSERT INTO attendance (pilgrim_id, location_id, checkpoint_time, status, source) VALUES
- (1, 1, now() - interval '2 days', 'PRESENT',      'NFC_SCAN'),
- (2, 1, now() - interval '2 days', 'PRESENT',      'NFC_SCAN'),
- (3, 1, now() - interval '2 days', 'LATE',         'QR_SCAN'),
- (4, 1, now() - interval '2 days', 'PRESENT',      'QR_SCAN'),
+ (1, 1, now() - interval '2 days', 'PRESENT',      'APP_CHECKIN'),
+ (2, 1, now() - interval '2 days', 'PRESENT',      'APP_CHECKIN'),
+ (3, 1, now() - interval '2 days', 'LATE',         'APP_CHECKIN'),
+ (4, 1, now() - interval '2 days', 'PRESENT',      'APP_CHECKIN'),
  (5, 1, now() - interval '2 days', 'ABSENT',       'MANUAL'),
- (6, 1, now() - interval '2 days', 'PRESENT',      'BLE_BEACON'),
- (1, 2, now() - interval '1 days', 'PRESENT',      'NFC_SCAN'),
+ (6, 1, now() - interval '2 days', 'PRESENT',      'APP_CHECKIN'),
+ (1, 2, now() - interval '1 days', 'PRESENT',      'APP_CHECKIN'),
  (2, 2, now() - interval '1 days', 'OUT_OF_RANGE', 'GPS'),
- (3, 2, now() - interval '1 days', 'PRESENT',      'QR_SCAN'),
- (4, 3, now() - interval '5 hours','PRESENT',      'QR_SCAN'),
- (5, 3, now() - interval '5 hours','LATE',         'BLE_BEACON');
+ (3, 2, now() - interval '1 days', 'PRESENT',      'APP_CHECKIN'),
+ (4, 3, now() - interval '5 hours','PRESENT',      'APP_CHECKIN'),
+ (5, 3, now() - interval '5 hours','LATE',         'APP_CHECKIN');
 
 INSERT INTO trips (id, vehicle_no, driver_name, route_from_id, route_to_id, departure_time, arrival_time, status) VALUES
  (1, 'BUS-101', 'سالم القحطاني', 2, 3, now() - interval '6 hours', now() - interval '4 hours', 'COMPLETED'),

@@ -1,6 +1,7 @@
 // =====================================================================
 // عين الحملة — DBML لاستخدامه مباشرة على dbdiagram.io
-// مطابق تماماً لـ schema.sql (PostgreSQL 16) — 14 جدولاً
+// مطابق تماماً لـ schema.sql (PostgreSQL 16) — 13 جدولاً
+// (نسخة بدون هاردوير: لا أجهزة NFC/QR/BLE — الحضور والتتبع بالكامل عبر التطبيق)
 // =====================================================================
 
 Enum user_role {
@@ -16,18 +17,6 @@ Enum campaign_status {
   COMPLETED
 }
 
-Enum device_type {
-  NFC
-  QR
-  BLE_TAG
-}
-
-Enum device_status {
-  ACTIVE
-  DISCONNECTED
-  LOST
-}
-
 Enum location_type {
   CHECKPOINT
   SAFE_ZONE
@@ -41,9 +30,7 @@ Enum attendance_status {
 }
 
 Enum attendance_source {
-  NFC_SCAN
-  QR_SCAN
-  BLE_BEACON
+  APP_CHECKIN
   GPS
   MANUAL
 }
@@ -126,21 +113,11 @@ Table groups {
   capacity      int     [not null, note: 'CHECK capacity > 0 — trigger prevents exceeding this on pilgrims']
 }
 
-Table devices {
-  id             bigint       [pk, increment]
-  type           device_type  [not null]
-  serial_code    varchar      [unique, not null]
-  battery_level  smallint     [note: 'CHECK 0-100']
-  last_signal_at timestamptz
-  status         device_status [not null, default: 'ACTIVE']
-}
-
 Table pilgrims {
   id            bigint  [pk, increment]
   user_id       bigint  [unique, not null, ref: > users.id]
   campaign_id   bigint  [ref: > campaigns.id]
   group_id      bigint  [ref: > groups.id]
-  device_id     bigint  [unique, ref: > devices.id]
   passport_no   varchar
   blood_type    varchar
   medical_notes text
@@ -167,7 +144,7 @@ Table attendance {
   location_id     bigint  [ref: > locations.id]
   checkpoint_time timestamptz [not null, default: `now()`]
   status          attendance_status [not null]
-  source          attendance_source [not null]
+  source          attendance_source [not null, note: 'APP_CHECKIN | GPS | MANUAL — لا يوجد مصدر هاردوير']
 }
 
 Table trips {

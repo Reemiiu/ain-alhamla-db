@@ -1,7 +1,8 @@
 -- =====================================================================
 -- عين الحملة — قاعدة بيانات منصة إدارة وتتبع حجاج الحملات
 -- PostgreSQL 16 — schema.sql
--- 14 جدولاً موزعة على 4 مجموعات وظيفية، مطابقة لمخطط ERD على dbdiagram.io
+-- 13 جدولاً موزعة على 4 مجموعات وظيفية، مطابقة لمخطط ERD على dbdiagram.io
+-- (نسخة بدون هاردوير: لا أجهزة NFC/QR/BLE — الحضور والتتبع بالكامل عبر التطبيق)
 -- =====================================================================
 
 BEGIN;
@@ -11,11 +12,9 @@ BEGIN;
 -- ---------------------------------------------------------------------
 CREATE TYPE user_role            AS ENUM ('ADMIN', 'SUPERVISOR', 'PILGRIM', 'OPERATIONS_CENTER');
 CREATE TYPE campaign_status      AS ENUM ('UPCOMING', 'ACTIVE', 'COMPLETED');
-CREATE TYPE device_type          AS ENUM ('NFC', 'QR', 'BLE_TAG');
-CREATE TYPE device_status        AS ENUM ('ACTIVE', 'DISCONNECTED', 'LOST');
 CREATE TYPE location_type        AS ENUM ('CHECKPOINT', 'SAFE_ZONE');
 CREATE TYPE attendance_status    AS ENUM ('PRESENT', 'LATE', 'ABSENT', 'OUT_OF_RANGE');
-CREATE TYPE attendance_source    AS ENUM ('NFC_SCAN', 'QR_SCAN', 'BLE_BEACON', 'GPS', 'MANUAL');
+CREATE TYPE attendance_source    AS ENUM ('APP_CHECKIN', 'GPS', 'MANUAL');
 CREATE TYPE trip_status          AS ENUM ('SCHEDULED', 'IN_PROGRESS', 'COMPLETED');
 CREATE TYPE alert_type           AS ENUM ('ABSENCE', 'DELAY', 'GEOFENCE_BREACH', 'SOS');
 CREATE TYPE alert_severity       AS ENUM ('LOW', 'MEDIUM', 'CRITICAL');
@@ -68,21 +67,11 @@ CREATE TABLE groups (
       capacity        INT             NOT NULL CHECK (capacity > 0)
   );
 
-CREATE TABLE devices (
-      id              BIGSERIAL PRIMARY KEY,
-      type            device_type     NOT NULL,
-      serial_code     VARCHAR(100)    NOT NULL UNIQUE,
-      battery_level   SMALLINT        CHECK (battery_level BETWEEN 0 AND 100),
-      last_signal_at  TIMESTAMPTZ,
-      status          device_status   NOT NULL DEFAULT 'ACTIVE'
-  );
-
 CREATE TABLE pilgrims (
       id              BIGSERIAL PRIMARY KEY,
       user_id         BIGINT          NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
       campaign_id     BIGINT          REFERENCES campaigns(id) ON DELETE SET NULL,
       group_id        BIGINT          REFERENCES groups(id) ON DELETE SET NULL,
-      device_id       BIGINT          UNIQUE REFERENCES devices(id) ON DELETE SET NULL,
       passport_no     VARCHAR(30),
       blood_type      VARCHAR(5),
       medical_notes   TEXT,
@@ -217,7 +206,6 @@ CREATE INDEX idx_notifications_alert_id    ON notifications (alert_id);
 
 CREATE INDEX idx_users_role       ON users (role);
 CREATE INDEX idx_campaigns_status ON campaigns (status);
-CREATE INDEX idx_devices_status   ON devices (status);
 CREATE INDEX idx_trips_status     ON trips (status);
 
 -- =====================================================================
@@ -273,7 +261,7 @@ CREATE TRIGGER pilgrims_check_group_capacity
     EXECUTE FUNCTION trg_check_group_capacity();
 
 -- =====================================================================
--- Row Level Security — يُفعَّل على جميع الجداول الـ14
+-- Row Level Security — يُفعَّل على جميع الجداول الـ13
 -- =====================================================================
 -- ملاحظة: لا سياسات (policies) مضافة هنا عمداً. بدون سياسات، تصبح كل
 -- الجداول مقفلة أمام anon/authenticated، ولا يستثنى منها إلا service_role.
@@ -283,7 +271,6 @@ ALTER TABLE users               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE supervisors         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE groups              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE devices             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pilgrims            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE locations           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance          ENABLE ROW LEVEL SECURITY;
